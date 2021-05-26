@@ -6,6 +6,7 @@ preloader
   .fetch([
     'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
     'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    'https://images.pexels.com/photos/248797/pexels-photo-248797.jpeg',
   ])
   .then((assets) => {
     // use the promise or the onComplete event
