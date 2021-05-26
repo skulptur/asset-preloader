@@ -17,8 +17,7 @@ preloader.onComplete((state) => {
 })
 
 preloader.onProgress((event) => {
-  // use Math.round() if you want integers only
-  console.log(event.progress + '%')
+  console.log(Math.round(event.progress * 100) + '%')
 })
 
 preloader.onFetched((state) => {
