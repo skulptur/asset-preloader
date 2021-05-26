@@ -1,10 +1,12 @@
 // code adapted from and improved upon https://github.com/andreupifarre/preload-it
 import { createPubSub } from 'lightcast'
 
-export const getItemByUrl = (context: PreloaderContext) => (rawUrl: string) => {
+export const getItemByUrl = (context: PreloaderContext) => (url: string) => {
   for (var item of context.state) {
-    if (item.url == rawUrl) return item
+    if (item.url == url) return item
   }
+
+  return null
 }
 
 export const cancel = (context: PreloaderContext) => () => {
@@ -20,7 +22,7 @@ export const cancel = (context: PreloaderContext) => () => {
   return context.state
 }
 
-export const updateProgress = (context: PreloaderContext) => (item: StateItem) => {
+export const updateProgress = (context: PreloaderContext) => (item: Asset) => {
   let sumCompletion = 0
   let maxCompletion = context.state.length
   let initialisedCount = 0
@@ -42,15 +44,15 @@ export const updateProgress = (context: PreloaderContext) => (item: StateItem) =
   }
 }
 
-export const preloadItem = <T>(context: PreloaderContext) => (
+export const preloadItem = (context: PreloaderContext) => (
   url: string,
-  done: (item: T) => void
+  done: (item: Asset) => void
 ) => {
   const xhr = new XMLHttpRequest()
   xhr.open('GET', url, true)
   xhr.responseType = 'blob'
 
-  const item = getItemByUrl(context)(url)
+  const item = getItemByUrl(context)(url) as Asset
   item.xhr = xhr
 
   xhr.onprogress = (event) => {
@@ -90,13 +92,14 @@ export const preloadItem = <T>(context: PreloaderContext) => (
   xhr.send()
 }
 
-export const fetch = (context: PreloaderContext) => (list: Array<string>) => {
-  return new Promise((resolve) => {
-    context.loaded = list.length
-    for (let item of list) {
-      context.state.push({ url: item })
-      preloadItem(context)(item, (item) => {
-        context.onFetched(item)
+export const fetch = (context: PreloaderContext) => (urls: Array<string>) => {
+  return new Promise<Assets>((resolve) => {
+    context.loaded = urls.length
+    for (let itemUrl of urls) {
+      // the item isn't a full StateItem yet but for the sake of simplicity we just cast
+      context.state.push({ url: itemUrl } as Asset)
+      preloadItem(context)(itemUrl, (loadedItem) => {
+        context.onFetched(loadedItem)
         context.loaded--
         if (context.loaded == 0) {
           context.onComplete(context.state)
@@ -107,31 +110,43 @@ export const fetch = (context: PreloaderContext) => (list: Array<string>) => {
   })
 }
 
-type StateItem = any
+type Asset = {
+  xhr: XMLHttpRequest
+  blobUrl: string | null
+  completion: number
+  downloaded: number
+  error: boolean
+  fileName: string
+  size: number | null
+  status: number
+  total: number
+  type: string
+  url: string
+}
 
-type State = Array<StateItem>
+type Assets = Array<Asset>
 
 type ProgressPayload = {
-  item: StateItem
+  item: Asset
   progress: number
 }
 
 type PreloaderContext = {
-  state: State
+  state: Assets
   loaded: number
   onProgress: (payload: ProgressPayload) => void
-  onComplete: (payload: State) => void
-  onFetched: (payload: StateItem) => void
+  onComplete: (payload: Assets) => void
+  onFetched: (payload: Asset) => void
   onError: (payload: any) => void
-  onCancel: (payload: State) => void
+  onCancel: (payload: Assets) => void
 }
 
 export const createPreloader = () => {
   const onProgress = createPubSub<ProgressPayload>()
-  const onComplete = createPubSub<State>()
-  const onFetched = createPubSub<StateItem>()
+  const onComplete = createPubSub<Assets>()
+  const onFetched = createPubSub<Asset>()
   const onError = createPubSub<string>()
-  const onCancel = createPubSub<State>()
+  const onCancel = createPubSub<Assets>()
 
   const context: PreloaderContext = {
     state: [],
