@@ -5266,10 +5266,10 @@ levn@^0.3.0, levn@~0.3.0:
     prelude-ls "~1.1.2"
     type-check "~0.3.2"
 
-lightcast@^0.1.2:
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/lightcast/-/lightcast-0.1.2.tgz#da246097d7b9b8be515f71f0c0bf6facf2285428"
-  integrity sha512-bTTmOQXIvDiV22JN/3rgFZHK+YsenkNjrAcKV+u31dcKcJpQl8s8Zy/RZO9iJOd5yaObLRPHawxqcxtJy4R0zg==
+lightcast@^0.1.3:
+  version "0.1.3"
+  resolved "https://registry.yarnpkg.com/lightcast/-/lightcast-0.1.3.tgz#8542c9fe8aab81381621367c0224ec59c7275399"
+  integrity sha512-uHSI9jNSjug3ezFY35OmdRQjJ3XvUHUlXYIWyuu+LckNoz+fI/w67+sFSzlF3dbV6t7XSH3Ay3CZczxqWIuf+Q==
 
 lilconfig@^2.0.2:
   version "2.0.2"
