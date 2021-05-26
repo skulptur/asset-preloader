@@ -1,1 +1,1 @@
-export { createPreloader } from './lib/preloader'
+export { createPreloader, Asset, ProgressPayload } from './lib/preloader'
