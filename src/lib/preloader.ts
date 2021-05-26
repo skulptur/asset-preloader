@@ -25,10 +25,8 @@ export const cancel = (context: PreloaderContext) => () => {
 export const updateProgress = (context: PreloaderContext) => (item: Asset) => {
   let sumCompletion = 0
   let maxCompletion = context.state.length
-  let initialisedCount = 0
 
   for (const itemState of context.state) {
-    if (itemState.completion) initialisedCount++
     if (itemState.completion) {
       sumCompletion += itemState.completion
     }
