@@ -1,5 +1,5 @@
 // code adapted from and improved upon https://github.com/andreupifarre/preload-it
-import { createPubSub } from 'lightcast'
+import { createPubSub, PubSub } from 'lightcast'
 
 export const getItemByUrl = (context: PreloaderContext) => (url: string) => {
   for (var item of context.state) {
@@ -17,7 +17,7 @@ export const cancel = (context: PreloaderContext) => () => {
     }
   }
 
-  context.onCancel(context.state)
+  context.events.onCancel.dispatch(context.state)
 
   return context.state
 }
@@ -35,7 +35,7 @@ export const updateProgress = (context: PreloaderContext) => (item: Asset) => {
   const totalCompletion = sumCompletion / maxCompletion
 
   if (!isNaN(totalCompletion)) {
-    context.onProgress({
+    context.events.onProgress.dispatch({
       progress: totalCompletion,
       item: item,
     })
@@ -77,7 +77,7 @@ export const preloadItem = (context: PreloaderContext) => (
       if (xhr.status == 404) {
         item.blobUrl = item.size = null
         item.error = true
-        context.onError(item)
+        context.events.onError.dispatch(item)
       } else {
         // TODO: fix
         // @ts-expect-error
@@ -102,10 +102,10 @@ export const fetch = (context: PreloaderContext) => (
       // the item isn't a full StateItem yet but for the sake of simplicity we just cast
       context.state.push({ url: itemUrl } as Asset)
       preloadItem(context)(itemUrl, responseType).then((loadedItem) => {
-        context.onFetched(loadedItem)
+        context.events.onFetched.dispatch(loadedItem)
         context.loaded--
         if (context.loaded == 0) {
-          context.onComplete(context.state)
+          context.events.onComplete.dispatch(context.state)
           resolve(context.state)
         }
       })
@@ -132,41 +132,38 @@ export type ProgressPayload = {
   progress: number
 }
 
+type PreloaderEvents = {
+  onProgress: PubSub<ProgressPayload>
+  onComplete: PubSub<Array<Asset>>
+  onFetched: PubSub<Asset>
+  onError: PubSub<any>
+  onCancel: PubSub<Array<Asset>>
+}
+
 type PreloaderContext = {
   state: Array<Asset>
   loaded: number
-  onProgress: (payload: ProgressPayload) => void
-  onComplete: (payload: Array<Asset>) => void
-  onFetched: (payload: Asset) => void
-  onError: (payload: any) => void
-  onCancel: (payload: Array<Asset>) => void
+  events: PreloaderEvents
 }
 
 export const createPreloader = () => {
-  const onProgress = createPubSub<ProgressPayload>()
-  const onComplete = createPubSub<Array<Asset>>()
-  const onFetched = createPubSub<Asset>()
-  const onError = createPubSub<string>()
-  const onCancel = createPubSub<Array<Asset>>()
+  const events: PreloaderEvents = {
+    onProgress: createPubSub(),
+    onComplete: createPubSub(),
+    onFetched: createPubSub(),
+    onError: createPubSub(),
+    onCancel: createPubSub(),
+  }
 
   const context: PreloaderContext = {
     state: [],
     loaded: 0,
-    onProgress: onProgress.dispatch,
-    onComplete: onComplete.dispatch,
-    onFetched: onFetched.dispatch,
-    onError: onError.dispatch,
-    onCancel: onCancel.dispatch,
+    events,
   }
 
   const dispose = () => {
     cancel(context)()
-
-    onProgress.dispose()
-    onComplete.dispose()
-    onFetched.dispose()
-    onError.dispose()
-    onCancel.dispose()
+    Object.values(events).forEach(({ dispose }) => dispose())
   }
 
   return {
@@ -175,11 +172,11 @@ export const createPreloader = () => {
     preloadItem: preloadItem(context),
     getItemByUrl: getItemByUrl(context),
     cancel: cancel(context),
-    onProgress: onProgress.subscribe,
-    onComplete: onComplete.subscribe,
-    onFetched: onFetched.subscribe,
-    onError: onError.subscribe,
-    onCancel: onCancel.subscribe,
+    onProgress: events.onProgress.subscribe,
+    onComplete: events.onComplete.subscribe,
+    onFetched: events.onFetched.subscribe,
+    onError: events.onError.subscribe,
+    onCancel: events.onCancel.subscribe,
     dispose,
   }
 }
