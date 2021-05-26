@@ -51,7 +51,7 @@ preloader.onError((state) => {
 
 ## Canceling
 
-The asset preloader can be canceled at any time during loading, when calling `preload.cancel()` all assets already preloaded will be available for use, but the download of pending assets will be abandoned and `status` will be set to `0`.
+The asset preloader can be canceled at any time during loading. When calling `preload.cancel()` all assets already preloaded will be available for use, but the download of pending assets will be abandoned and `status` will be set to `0`.
 
 ```typescript
 preload.onCancel((items) => {
