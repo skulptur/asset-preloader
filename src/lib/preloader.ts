@@ -36,7 +36,6 @@ export const createPreloader = () => {
 
   const dispose = () => {
     cancel()
-    assets.length = 0
     Object.values(events).forEach(({ dispose }) => dispose())
   }
 
