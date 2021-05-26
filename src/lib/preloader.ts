@@ -41,7 +41,7 @@ export const createPreloader = () => {
   }
 
   const assets: Array<Asset> = []
-  let assetsLoaded: number = 0
+  let assetsToLoad: number = 0
 
   const cancel = () => {
     assets.forEach((item) => {
@@ -61,7 +61,7 @@ export const createPreloader = () => {
 
   const fetch = (urls: Array<string>, responseType?: XMLHttpRequestResponseType) => {
     return new Promise<Array<Asset>>((resolve) => {
-      assetsLoaded = urls.length
+      assetsToLoad += urls.length
       urls.forEach((url) => {
         const asset = { url } as Asset
         // the item isn't a full StateItem yet but for the sake of simplicity we just cast
@@ -79,8 +79,8 @@ export const createPreloader = () => {
           onError: events.onError.dispatch,
           onComplete: (loadedItem) => {
             events.onFetched.dispatch(loadedItem)
-            assetsLoaded--
-            if (assetsLoaded === 0) {
+            assetsToLoad--
+            if (assetsToLoad === 0) {
               events.onComplete.dispatch(assets)
               resolve(assets)
               dispose()
