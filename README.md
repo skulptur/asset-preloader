@@ -1,6 +1,6 @@
 ## `asset-preloader`
 
-A tiny Typescript asset preloader for the browser via XHR2. It can preload assets of different file types and composite progress together and supports multiple event subscriptions.
+A tiny asset preloader for the browser via XHR2. It can preload assets of different file types and composite progress together, with support for multiple event subscriptions.
 
 ## Get started
 
@@ -19,16 +19,16 @@ import { createPreloader } from 'asset-preloader'
 
 const preloader = createPreloader()
 
-preloader
-  .fetch([
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-  ])
-  .then((assets) => {
-    // use the promise or the onComplete event
-    console.log('resolved', assets)
-  })
+const urls = [
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+]
 
+urls.forEach((url) => preloader.load(url))
+
+preloader.start()
+
+// event subscriptions
 preloader.onComplete((assets) => {
   console.log('completed', assets)
 })
