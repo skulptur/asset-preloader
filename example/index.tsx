@@ -7,23 +7,23 @@ preloader
     'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
     'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
   ])
-  .then((state) => {
+  .then((assets) => {
     // use the promise or the onComplete event
-    console.log('resolved', state)
+    console.log('resolved', assets)
   })
 
-preloader.onComplete((state) => {
-  console.log('completed', state)
+preloader.onComplete((assets) => {
+  console.log('completed', assets)
 })
 
 preloader.onProgress((event) => {
   console.log(Math.round(event.progress * 100) + '%')
 })
 
-preloader.onFetched((state) => {
-  console.log('fetched', state)
+preloader.onFetched((assets) => {
+  console.log('fetched', assets)
 })
 
-preloader.onError((state) => {
-  console.log('error', state)
+preloader.onError((assets) => {
+  console.log('error', assets)
 })
