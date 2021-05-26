@@ -9,7 +9,7 @@ export const getItemByUrl = (context: PreloaderContext) => (rawUrl: string) => {
 
 export const cancel = (context: PreloaderContext) => () => {
   for (var item of context.state) {
-    if (item.completion < 100) {
+    if (item.completion < 1) {
       item.xhr.abort()
       item.status = 0
     }
@@ -22,28 +22,17 @@ export const cancel = (context: PreloaderContext) => () => {
 
 export const updateProgress = (context: PreloaderContext) => (item: StateItem) => {
   let sumCompletion = 0
-  let maxCompletion = context.stepped ? context.state.length * 100 : 0
+  let maxCompletion = context.state.length
   let initialisedCount = 0
 
   for (const itemState of context.state) {
     if (itemState.completion) initialisedCount++
-    if (context.stepped) {
-      if (itemState.completion) {
-        sumCompletion += itemState.completion
-      }
-    } else {
-      if (context._readyForComputation) {
-        sumCompletion += itemState.downloaded
-        maxCompletion += itemState.total
-      } else {
-        sumCompletion = maxCompletion = 0
-      }
+    if (itemState.completion) {
+      sumCompletion += itemState.completion
     }
   }
 
-  context._readyForComputation = initialisedCount == context.state.length
-
-  const totalCompletion = (sumCompletion / maxCompletion) * 100
+  const totalCompletion = sumCompletion / maxCompletion
 
   if (!isNaN(totalCompletion)) {
     context.onProgress({
@@ -66,7 +55,7 @@ export const preloadItem = <T>(context: PreloaderContext) => (
 
   xhr.onprogress = (event) => {
     if (event.lengthComputable) {
-      item.completion = (event.loaded / event.total) * 100
+      item.completion = event.loaded / event.total
       item.downloaded = event.loaded
       item.total = event.total
       updateProgress(context)(item)
@@ -118,10 +107,6 @@ export const fetch = (context: PreloaderContext) => (list: Array<string>) => {
   })
 }
 
-type PreloaderOptions = {
-  stepped: boolean
-}
-
 type StateItem = any
 
 type State = Array<StateItem>
@@ -134,16 +119,14 @@ type ProgressPayload = {
 type PreloaderContext = {
   state: State
   loaded: number
-  stepped: boolean
   onProgress: (payload: ProgressPayload) => void
   onComplete: (payload: State) => void
   onFetched: (payload: StateItem) => void
   onError: (payload: any) => void
   onCancel: (payload: State) => void
-  _readyForComputation?: boolean
 }
 
-export const createPreloader = (options: Partial<PreloaderOptions> = {}) => {
+export const createPreloader = () => {
   const onProgress = createPubSub<ProgressPayload>()
   const onComplete = createPubSub<State>()
   const onFetched = createPubSub<StateItem>()
@@ -153,7 +136,6 @@ export const createPreloader = (options: Partial<PreloaderOptions> = {}) => {
   const context: PreloaderContext = {
     state: [],
     loaded: 0,
-    stepped: options.stepped || true,
     onProgress: onProgress.dispatch,
     onComplete: onComplete.dispatch,
     onFetched: onFetched.dispatch,
