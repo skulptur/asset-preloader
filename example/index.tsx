@@ -5,7 +5,6 @@ const preloader = createPreloader()
 const urls = [
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-  'https://images.pexels.com/photos/248797/pexels-photo-248797.jpeg',
 ]
 
 urls.forEach((url) => preloader.load(url))
