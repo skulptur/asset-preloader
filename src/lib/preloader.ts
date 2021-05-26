@@ -44,59 +44,64 @@ export const updateProgress = (context: PreloaderContext) => (item: Asset) => {
 
 export const preloadItem = (context: PreloaderContext) => (
   url: string,
-  done: (item: Asset) => void
+  responseType: XMLHttpRequestResponseType = 'blob'
 ) => {
-  const xhr = new XMLHttpRequest()
-  xhr.open('GET', url, true)
-  xhr.responseType = 'blob'
+  return new Promise<Asset>((resolve) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('GET', url, true)
+    xhr.responseType = responseType
 
-  const item = getItemByUrl(context)(url) as Asset
-  item.xhr = xhr
+    const item = getItemByUrl(context)(url) as Asset
+    item.xhr = xhr
 
-  xhr.onprogress = (event) => {
-    if (event.lengthComputable) {
-      item.completion = event.loaded / event.total
-      item.downloaded = event.loaded
-      item.total = event.total
-      updateProgress(context)(item)
+    xhr.onprogress = (event) => {
+      if (event.lengthComputable) {
+        item.completion = event.loaded / event.total
+        item.downloaded = event.loaded
+        item.total = event.total
+        updateProgress(context)(item)
+      }
     }
-  }
 
-  xhr.onload = (event) => {
-    // TODO: fix
-    // @ts-expect-error
-    const type = event.target.response.type
-    // @ts-expect-error
-    const responseURL = event.target.responseURL
-
-    item.fileName = responseURL.substring(responseURL.lastIndexOf('/') + 1)
-    item.type = type
-    item.status = xhr.status
-
-    if (xhr.status == 404) {
-      item.blobUrl = item.size = null
-      item.error = true
-      context.onError(item)
-    } else {
+    xhr.onload = (event) => {
       // TODO: fix
       // @ts-expect-error
-      const blob = new Blob([event.target.response], { type })
-      item.blobUrl = URL.createObjectURL(blob)
-      item.size = blob.size
-      item.error = false
+      const type = event.target.response.type
+      // @ts-expect-error
+      const responseURL = event.target.responseURL
+
+      item.fileName = responseURL.substring(responseURL.lastIndexOf('/') + 1)
+      item.type = type
+      item.status = xhr.status
+
+      if (xhr.status == 404) {
+        item.blobUrl = item.size = null
+        item.error = true
+        context.onError(item)
+      } else {
+        // TODO: fix
+        // @ts-expect-error
+        const blob = new Blob([event.target.response], { type })
+        item.blobUrl = URL.createObjectURL(blob)
+        item.size = blob.size
+        item.error = false
+      }
+      resolve(item)
     }
-    done(item)
-  }
-  xhr.send()
+    xhr.send()
+  })
 }
 
-export const fetch = (context: PreloaderContext) => (urls: Array<string>) => {
+export const fetch = (context: PreloaderContext) => (
+  urls: Array<string>,
+  responseType?: XMLHttpRequestResponseType
+) => {
   return new Promise<Array<Asset>>((resolve) => {
     context.loaded = urls.length
     for (let itemUrl of urls) {
       // the item isn't a full StateItem yet but for the sake of simplicity we just cast
       context.state.push({ url: itemUrl } as Asset)
-      preloadItem(context)(itemUrl, (loadedItem) => {
+      preloadItem(context)(itemUrl, responseType).then((loadedItem) => {
         context.onFetched(loadedItem)
         context.loaded--
         if (context.loaded == 0) {
