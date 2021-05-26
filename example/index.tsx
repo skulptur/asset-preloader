@@ -14,6 +14,9 @@ preloader.start()
 // event subscriptions
 preloader.onComplete((assets) => {
   console.log('completed', assets)
+  setTimeout(() => {
+    console.log('completed delayed', assets)
+  }, 1000)
 })
 
 preloader.onProgress((event) => {
