@@ -1,6 +1,5 @@
 import { createPubSub, PubSub } from 'lightcast'
-import { Asset } from './asset'
-import { ProgressPayload } from './preloadAsset'
+import { ProgressPayload, Asset } from './preloadAsset'
 
 export type PreloaderEvents = {
   onProgress: PubSub<ProgressPayload>
