@@ -1,44 +1,11 @@
-// code adapted from and improved upon https://github.com/andreupifarre/preload-it
-import { createPubSub, PubSub } from 'lightcast'
+import { Asset } from './asset'
 import { getItemByUrl } from './getItemByUrl'
 import { getTotalProgress } from './getTotalProgress'
 import { preloadAsset } from './preloadAsset'
-
-export type Asset = {
-  xhr: XMLHttpRequest
-  blobUrl: string | null
-  progress: number
-  downloaded: number
-  error: boolean
-  fileName: string
-  size: number | null
-  status: number
-  total: number
-  type: string
-  url: string
-}
-
-export type ProgressPayload = {
-  asset: Asset
-  progress: number
-}
-
-type PreloaderEvents = {
-  onProgress: PubSub<ProgressPayload>
-  onComplete: PubSub<Array<Asset>>
-  onFetched: PubSub<Asset>
-  onError: PubSub<Asset>
-  onCancel: PubSub<Array<Asset>>
-}
+import { createEvents } from './events'
 
 export const createPreloader = () => {
-  const events: PreloaderEvents = {
-    onProgress: createPubSub(),
-    onComplete: createPubSub(),
-    onFetched: createPubSub(),
-    onError: createPubSub(),
-    onCancel: createPubSub(),
-  }
+  const events = createEvents()
 
   const assets: Array<Asset> = []
   let assetsToLoad: number = 0
@@ -63,30 +30,28 @@ export const createPreloader = () => {
     return new Promise<Array<Asset>>((resolve) => {
       assetsToLoad += urls.length
       urls.forEach((url) => {
-        const asset = { url } as Asset
-        // the item isn't a full StateItem yet but for the sake of simplicity we just cast
-        assets.push(asset)
-        preloadAsset({
-          asset,
-          responseType,
-          onProgress: () => {
-            const totalProgress = getTotalProgress(assets)
-            events.onProgress.dispatch({
-              asset,
-              progress: totalProgress,
-            })
-          },
-          onError: events.onError.dispatch,
-          onComplete: (loadedItem) => {
-            events.onFetched.dispatch(loadedItem)
-            assetsToLoad--
-            if (assetsToLoad === 0) {
-              events.onComplete.dispatch(assets)
-              resolve(assets)
-              dispose()
-            }
-          },
-        })
+        assets.push(
+          preloadAsset({
+            url,
+            responseType,
+            onProgress: (payload) => {
+              events.onProgress.dispatch({
+                ...payload,
+                progress: getTotalProgress(assets),
+              })
+            },
+            onError: events.onError.dispatch,
+            onComplete: (loadedItem) => {
+              events.onFetched.dispatch(loadedItem)
+              assetsToLoad--
+              if (assetsToLoad === 0) {
+                events.onComplete.dispatch(assets)
+                resolve(assets)
+                dispose()
+              }
+            },
+          })
+        )
       })
     })
   }
