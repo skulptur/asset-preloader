@@ -1,29 +1,30 @@
-import { preloader } from '../src/'
+import { createPreloader } from '../src/'
 
-const loader = preloader()
+const preloader = createPreloader()
 
-loader
+preloader
   .fetch([
     'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
     'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
   ])
-  // use the promise or the onComplete event
-  .then((items) => {
-    console.log(items)
+  .then((state) => {
+    // use the promise or the onComplete event
+    console.log('resolved', state)
   })
 
-loader.onComplete((items) => {
-  console.log(items)
+preloader.onComplete((state) => {
+  console.log('completed', state)
 })
 
-loader.onProgress((event) => {
+preloader.onProgress((event) => {
+  // use Math.round() if you want integers only
   console.log(event.progress + '%')
 })
 
-loader.onFetched((item) => {
-  console.log(item)
+preloader.onFetched((state) => {
+  console.log('fetched', state)
 })
 
-loader.onError((item) => {
-  console.log(item)
+preloader.onError((state) => {
+  console.log('error', state)
 })
