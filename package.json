@@ -1,6 +1,6 @@
 {
   "name": "asset-preloader",
-  "version": "0.1.4",
+  "version": "0.1.3",
   "author": "skulptur",
   "license": "MIT",
   "module": "dist/asset-preloader.esm.js",
