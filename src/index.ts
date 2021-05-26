@@ -1,1 +1,1 @@
-export { noop } from './lib/noop'
+export { preloader } from './lib/preloader'
