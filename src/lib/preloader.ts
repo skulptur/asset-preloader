@@ -44,7 +44,7 @@ export const createPreloader = () => {
     url: string,
     { responseType, onProgress = () => {} }: Partial<LoadOptions> = {}
   ) => {
-    return new Promise<Asset>((resolve) => {
+    return new Promise<Asset>((resolve, reject) => {
       assetsToLoad++
 
       const loadAsset = () =>
@@ -59,13 +59,17 @@ export const createPreloader = () => {
 
             onProgress(payload)
           },
-          onError: events.onError.dispatch,
+          onError: (item) => {
+            reject()
+            events.onError.dispatch(item)
+          },
           onComplete: (asset) => {
             events.onFetched.dispatch(asset)
+            resolve(asset)
+
             assetsToLoad--
             if (assetsToLoad === 0) {
               events.onComplete.dispatch(assets)
-              resolve(asset)
               dispose()
             }
           },
