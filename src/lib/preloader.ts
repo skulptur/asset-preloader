@@ -20,7 +20,7 @@ export const createPreloader = () => {
     pending.forEach((pendingAsset) => {
       assets.push(pendingAsset())
     })
-    pending = []
+    pending.length = 0
   }
 
   const cancel = () => {
@@ -36,7 +36,7 @@ export const createPreloader = () => {
 
   const dispose = () => {
     cancel()
-    assets = []
+    assets.length = 0
     Object.values(events).forEach(({ dispose }) => dispose())
   }
 
@@ -82,13 +82,13 @@ export const createPreloader = () => {
   return {
     load,
     start,
+    cancel,
+    dispose,
     getItemByUrl: getItemByUrl(assets),
+    onCancel: events.onCancel.subscribe,
     onProgress: events.onProgress.subscribe,
     onComplete: events.onComplete.subscribe,
     onFetched: events.onFetched.subscribe,
     onError: events.onError.subscribe,
-    onCancel: events.onCancel.subscribe,
-    cancel,
-    dispose,
   }
 }
