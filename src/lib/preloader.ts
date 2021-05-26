@@ -1,45 +1,20 @@
 // code adapted from and improved upon https://github.com/andreupifarre/preload-it
 import { createPubSub, PubSub } from 'lightcast'
 
-export const getItemByUrl = (context: PreloaderContext) => (url: string) => {
-  for (var item of context.state) {
-    if (item.url == url) return item
-  }
-
-  return null
+// generic utils
+export const getItemByUrl = (items: Array<{ url: string }>) => (url: string) => {
+  return items.find((item) => item.url === url)
 }
 
-export const cancel = (context: PreloaderContext) => () => {
-  for (var item of context.state) {
-    if (item.completion < 1) {
-      item.xhr.abort()
-      item.status = 0
-    }
-  }
+export const getTotalProgress = (items: Array<{ progress: number }>) => {
+  const maxProgress = items.length
+  const sumProgress = items.reduce((acc, itemState) => {
+    return itemState.progress ? acc + itemState.progress : acc
+  }, 0)
 
-  context.events.onCancel.dispatch(context.state)
+  const totalProgress = sumProgress / maxProgress
 
-  return context.state
-}
-
-export const updateProgress = (context: PreloaderContext) => (item: Asset) => {
-  let sumCompletion = 0
-  let maxCompletion = context.state.length
-
-  for (const itemState of context.state) {
-    if (itemState.completion) {
-      sumCompletion += itemState.completion
-    }
-  }
-
-  const totalCompletion = sumCompletion / maxCompletion
-
-  if (!isNaN(totalCompletion)) {
-    context.events.onProgress.dispatch({
-      progress: totalCompletion,
-      item: item,
-    })
-  }
+  return totalProgress
 }
 
 export const preloadItem = (context: PreloaderContext) => (
@@ -51,15 +26,20 @@ export const preloadItem = (context: PreloaderContext) => (
     xhr.open('GET', url, true)
     xhr.responseType = responseType
 
-    const item = getItemByUrl(context)(url) as Asset
+    const item = getItemByUrl(context.state)(url) as Asset
     item.xhr = xhr
 
     xhr.onprogress = (event) => {
       if (event.lengthComputable) {
-        item.completion = event.loaded / event.total
+        item.progress = event.loaded / event.total
         item.downloaded = event.loaded
         item.total = event.total
-        updateProgress(context)(item)
+        const totalProgress = getTotalProgress(context.state)
+
+        context.events.onProgress.dispatch({
+          progress: totalProgress,
+          item: item,
+        })
       }
     }
 
@@ -116,7 +96,7 @@ export const fetch = (context: PreloaderContext) => (
 export type Asset = {
   xhr: XMLHttpRequest
   blobUrl: string | null
-  completion: number
+  progress: number
   downloaded: number
   error: boolean
   fileName: string
@@ -161,22 +141,32 @@ export const createPreloader = () => {
     events,
   }
 
+  const cancel = () => {
+    context.state.forEach((item) => {
+      if (item.progress < 1) {
+        item.xhr.abort()
+        item.status = 0
+      }
+    })
+
+    context.events.onCancel.dispatch(context.state)
+  }
+
   const dispose = () => {
-    cancel(context)()
+    cancel()
     Object.values(events).forEach(({ dispose }) => dispose())
   }
 
   return {
     fetch: fetch(context),
-    updateProgress: updateProgress(context),
     preloadItem: preloadItem(context),
-    getItemByUrl: getItemByUrl(context),
-    cancel: cancel(context),
+    getItemByUrl: getItemByUrl(context.state),
     onProgress: events.onProgress.subscribe,
     onComplete: events.onComplete.subscribe,
     onFetched: events.onFetched.subscribe,
     onError: events.onError.subscribe,
     onCancel: events.onCancel.subscribe,
+    cancel,
     dispose,
   }
 }
