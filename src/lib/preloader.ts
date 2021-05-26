@@ -91,7 +91,7 @@ export const preloadItem = (context: PreloaderContext) => (
 }
 
 export const fetch = (context: PreloaderContext) => (urls: Array<string>) => {
-  return new Promise<Assets>((resolve) => {
+  return new Promise<Array<Asset>>((resolve) => {
     context.loaded = urls.length
     for (let itemUrl of urls) {
       // the item isn't a full StateItem yet but for the sake of simplicity we just cast
@@ -122,29 +122,27 @@ export type Asset = {
   url: string
 }
 
-type Assets = Array<Asset>
-
 export type ProgressPayload = {
   item: Asset
   progress: number
 }
 
 type PreloaderContext = {
-  state: Assets
+  state: Array<Asset>
   loaded: number
   onProgress: (payload: ProgressPayload) => void
-  onComplete: (payload: Assets) => void
+  onComplete: (payload: Array<Asset>) => void
   onFetched: (payload: Asset) => void
   onError: (payload: any) => void
-  onCancel: (payload: Assets) => void
+  onCancel: (payload: Array<Asset>) => void
 }
 
 export const createPreloader = () => {
   const onProgress = createPubSub<ProgressPayload>()
-  const onComplete = createPubSub<Assets>()
+  const onComplete = createPubSub<Array<Asset>>()
   const onFetched = createPubSub<Asset>()
   const onError = createPubSub<string>()
-  const onCancel = createPubSub<Assets>()
+  const onCancel = createPubSub<Array<Asset>>()
 
   const context: PreloaderContext = {
     state: [],
