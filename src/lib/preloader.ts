@@ -1,3 +1,4 @@
+// code adapted from and improved uppon https://github.com/andreupifarre/preload-it
 import { createPubSub } from 'lightcast'
 
 export const getItemByUrl = (context: PreloaderContext) => (rawUrl: string) => {
@@ -52,7 +53,7 @@ export const updateProgressBar = (context: PreloaderContext) => (item: StateItem
   }
 }
 
-export const preloadOne = <T>(context: PreloaderContext) => (
+export const preloadItem = <T>(context: PreloaderContext) => (
   url: string,
   done: (item: T) => void
 ) => {
@@ -105,7 +106,7 @@ export const fetch = (context: PreloaderContext) => (list: Array<string>) => {
     context.loaded = list.length
     for (let item of list) {
       context.state.push({ url: item })
-      preloadOne(context)(item, (item) => {
+      preloadItem(context)(item, (item) => {
         context.onFetched(item)
         context.loaded--
         if (context.loaded == 0) {
@@ -173,7 +174,7 @@ export const preloader = (options: Partial<PreloaderOptions> = {}) => {
   return {
     fetch: fetch(context),
     updateProgressBar: updateProgressBar(context),
-    preloadOne: preloadOne(context),
+    preloadItem: preloadItem(context),
     getItemByUrl: getItemByUrl(context),
     cancel: cancel(context),
     onProgress: onProgress.subscribe,
