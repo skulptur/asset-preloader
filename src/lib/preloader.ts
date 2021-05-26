@@ -17,16 +17,27 @@ export const getTotalProgress = (items: Array<{ progress: number }>) => {
   return totalProgress
 }
 
-export const preloadItem = (context: PreloaderContext) => (
-  url: string,
-  responseType: XMLHttpRequestResponseType = 'blob'
-) => {
+type PreloadItemProps = {
+  onProgress: (payload: ProgressPayload) => void
+  onError: (asset: Asset) => void
+  assets: Array<Asset>
+  url: string
+  responseType?: XMLHttpRequestResponseType
+}
+
+export const preloadItem = ({
+  url,
+  assets,
+  onProgress,
+  onError,
+  responseType = 'blob',
+}: PreloadItemProps) => {
   return new Promise<Asset>((resolve) => {
     const xhr = new XMLHttpRequest()
     xhr.open('GET', url, true)
     xhr.responseType = responseType
 
-    const item = getItemByUrl(context.state)(url) as Asset
+    const item = getItemByUrl(assets)(url) as Asset
     item.xhr = xhr
 
     xhr.onprogress = (event) => {
@@ -34,12 +45,8 @@ export const preloadItem = (context: PreloaderContext) => (
         item.progress = event.loaded / event.total
         item.downloaded = event.loaded
         item.total = event.total
-        const totalProgress = getTotalProgress(context.state)
 
-        context.events.onProgress.dispatch({
-          progress: totalProgress,
-          item: item,
-        })
+        onProgress({ progress: getTotalProgress(assets), item })
       }
     }
 
@@ -57,7 +64,7 @@ export const preloadItem = (context: PreloaderContext) => (
       if (xhr.status == 404) {
         item.blobUrl = item.size = null
         item.error = true
-        context.events.onError.dispatch(item)
+        onError(item)
       } else {
         // TODO: fix
         // @ts-expect-error
@@ -69,27 +76,6 @@ export const preloadItem = (context: PreloaderContext) => (
       resolve(item)
     }
     xhr.send()
-  })
-}
-
-export const fetch = (context: PreloaderContext) => (
-  urls: Array<string>,
-  responseType?: XMLHttpRequestResponseType
-) => {
-  return new Promise<Array<Asset>>((resolve) => {
-    context.loaded = urls.length
-    for (let itemUrl of urls) {
-      // the item isn't a full StateItem yet but for the sake of simplicity we just cast
-      context.state.push({ url: itemUrl } as Asset)
-      preloadItem(context)(itemUrl, responseType).then((loadedItem) => {
-        context.events.onFetched.dispatch(loadedItem)
-        context.loaded--
-        if (context.loaded == 0) {
-          context.events.onComplete.dispatch(context.state)
-          resolve(context.state)
-        }
-      })
-    }
   })
 }
 
@@ -116,12 +102,12 @@ type PreloaderEvents = {
   onProgress: PubSub<ProgressPayload>
   onComplete: PubSub<Array<Asset>>
   onFetched: PubSub<Asset>
-  onError: PubSub<any>
+  onError: PubSub<Asset>
   onCancel: PubSub<Array<Asset>>
 }
 
 type PreloaderContext = {
-  state: Array<Asset>
+  assets: Array<Asset>
   loaded: number
   events: PreloaderEvents
 }
@@ -136,20 +122,44 @@ export const createPreloader = () => {
   }
 
   const context: PreloaderContext = {
-    state: [],
+    assets: [],
     loaded: 0,
     events,
   }
 
+  const fetch = (urls: Array<string>, responseType: XMLHttpRequestResponseType) => {
+    return new Promise<Array<Asset>>((resolve) => {
+      context.loaded = urls.length
+      urls.forEach((url) => {
+        // the item isn't a full StateItem yet but for the sake of simplicity we just cast
+        context.assets.push({ url } as Asset)
+        preloadItem({
+          assets: context.assets,
+          onProgress: context.events.onProgress.dispatch,
+          onError: context.events.onError.dispatch,
+          url,
+          responseType,
+        }).then((loadedItem) => {
+          context.events.onFetched.dispatch(loadedItem)
+          context.loaded--
+          if (context.loaded == 0) {
+            context.events.onComplete.dispatch(context.assets)
+            resolve(context.assets)
+          }
+        })
+      })
+    })
+  }
+
   const cancel = () => {
-    context.state.forEach((item) => {
+    context.assets.forEach((item) => {
       if (item.progress < 1) {
         item.xhr.abort()
         item.status = 0
       }
     })
 
-    context.events.onCancel.dispatch(context.state)
+    context.events.onCancel.dispatch(context.assets)
   }
 
   const dispose = () => {
@@ -158,9 +168,9 @@ export const createPreloader = () => {
   }
 
   return {
-    fetch: fetch(context),
-    preloadItem: preloadItem(context),
-    getItemByUrl: getItemByUrl(context.state),
+    fetch,
+    // preloadItem: preloadItem(),
+    getItemByUrl: getItemByUrl(context.assets),
     onProgress: events.onProgress.subscribe,
     onComplete: events.onComplete.subscribe,
     onFetched: events.onFetched.subscribe,
