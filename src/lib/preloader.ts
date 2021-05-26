@@ -1,4 +1,4 @@
-// code adapted from and improved uppon https://github.com/andreupifarre/preload-it
+// code adapted from and improved upon https://github.com/andreupifarre/preload-it
 import { createPubSub } from 'lightcast'
 
 export const getItemByUrl = (context: PreloaderContext) => (rawUrl: string) => {
@@ -20,7 +20,7 @@ export const cancel = (context: PreloaderContext) => () => {
   return context.state
 }
 
-export const updateProgressBar = (context: PreloaderContext) => (item: StateItem) => {
+export const updateProgress = (context: PreloaderContext) => (item: StateItem) => {
   let sumCompletion = 0
   let maxCompletion = context.stepped ? context.state.length * 100 : 0
   let initialisedCount = 0
@@ -69,7 +69,7 @@ export const preloadItem = <T>(context: PreloaderContext) => (
       item.completion = (event.loaded / event.total) * 100
       item.downloaded = event.loaded
       item.total = event.total
-      updateProgressBar(context)(item)
+      updateProgress(context)(item)
     }
   }
 
@@ -143,7 +143,7 @@ type PreloaderContext = {
   _readyForComputation?: boolean
 }
 
-export const preloader = (options: Partial<PreloaderOptions> = {}) => {
+export const createPreloader = (options: Partial<PreloaderOptions> = {}) => {
   const onProgress = createPubSub<ProgressPayload>()
   const onComplete = createPubSub<State>()
   const onFetched = createPubSub<StateItem>()
@@ -173,7 +173,7 @@ export const preloader = (options: Partial<PreloaderOptions> = {}) => {
 
   return {
     fetch: fetch(context),
-    updateProgressBar: updateProgressBar(context),
+    updateProgress: updateProgress(context),
     preloadItem: preloadItem(context),
     getItemByUrl: getItemByUrl(context),
     cancel: cancel(context),
