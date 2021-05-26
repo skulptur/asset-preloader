@@ -108,7 +108,7 @@ export const fetch = (context: PreloaderContext) => (urls: Array<string>) => {
   })
 }
 
-type Asset = {
+export type Asset = {
   xhr: XMLHttpRequest
   blobUrl: string | null
   completion: number
@@ -124,7 +124,7 @@ type Asset = {
 
 type Assets = Array<Asset>
 
-type ProgressPayload = {
+export type ProgressPayload = {
   item: Asset
   progress: number
 }
